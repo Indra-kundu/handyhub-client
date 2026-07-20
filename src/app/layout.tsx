@@ -1,6 +1,9 @@
+import { Providers } from "./providers"; // ফাইলটি ইমপোর্ট করেছেন
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,7 +30,16 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col font-sans bg-bg-page text-text-main">
+        <Providers>
+          <Navbar />
+          {/* মেইন কন্টেন্টের জন্য কন্টেইনার */}
+          <main className="flex-grow container mx-auto px-4 py-8">
+            {children}
+          </main>
+          <Footer></Footer>
+        </Providers>
+      </body>
     </html>
   );
 }
