@@ -128,7 +128,7 @@ export default function Footer() {
 
                             <li>
                                 <Link
-                                    href="/about"
+                                    href="/about-us"
                                     className="hover:text-accent"
                                 >
                                     About Us

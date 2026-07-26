@@ -15,6 +15,10 @@ const Navbar = () => {
         { name: "Home", href: "/" },
         { name: "Browse Service", href: "/browse-service" },
         { name: "About Us", href: "/about-us" },
+        { name: "Blog", href: "/blog" },
+        { name: "Recommendation", href: "/recommendation" },
+        { name: "Chat-Assistant", href: "/chat-assistant" },
+
     ];
 
     // Role অনুযায়ী Dashboard Route

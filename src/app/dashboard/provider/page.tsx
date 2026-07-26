@@ -37,15 +37,7 @@ export default function ProviderDashboard() {
         image: "",
     });
 
-    const getAuthHeaders = () => {
-        // এখানে 'session as any' ব্যবহার করে টাইপস্ক্রিপ্ট এররটি এড়িয়ে যাওয়া হলো
-        const token = (session as any)?.token || "";
 
-        return {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-        };
-    };
     const fetchServices = async () => {
         if (!session?.user?.id) return;
         try {
@@ -76,12 +68,11 @@ export default function ProviderDashboard() {
             fetchBookings();
         }
     }, [session]);
-
     const handleDeleteBooking = async (id: string) => {
         try {
             await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bookings/${id}`, {
                 method: "DELETE",
-                headers: getAuthHeaders(),
+                credentials: "include", // যদি কুকি বা সেশন প্রয়োজন হয়
             });
             fetchBookings();
         } catch (error) {
@@ -92,32 +83,49 @@ export default function ProviderDashboard() {
     const handleUpdateStatus = async (id: string, status: string) => {
         await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bookings/${id}`, {
             method: "PUT",
-            headers: getAuthHeaders(),
+            headers: {
+                "Content-Type": "application/json",
+            },
             body: JSON.stringify({ status }),
         });
         fetchBookings();
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        const url = editingId
-            ? `${process.env.NEXT_PUBLIC_API_URL}/api/services/${editingId}`
-            : `${process.env.NEXT_PUBLIC_API_URL}/api/services`;
-        const method = editingId ? "PUT" : "POST";
+        e.preventDefault(); // সবার আগে এটি দিতে হবে
 
-        await fetch(url, {
-            method,
-            headers: getAuthHeaders(),
-            body: JSON.stringify({
-                ...formData,
-                price: Number(formData.price),
-                providerId: session?.user?.id,
-            }),
-        });
+        try {
+            const { data: tokenData } = await authClient.token();
 
-        setFormData({ title: "", description: "", price: "", category: "", image: "" });
-        setEditingId(null);
-        fetchServices();
+            const url = editingId
+                ? `${process.env.NEXT_PUBLIC_API_URL}/api/services/${editingId}`
+                : `${process.env.NEXT_PUBLIC_API_URL}/api/services`;
+            const method = editingId ? "PUT" : "POST";
+
+            const response = await fetch(url, {
+                method,
+                headers: {
+                    'content-type': 'application/json',
+                    authorization: `Bearer ${tokenData?.token}`
+                },
+                body: JSON.stringify({
+                    ...formData,
+                    price: Number(formData.price),
+                    providerId: session?.user?.id,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to save service");
+            }
+
+            // ফর্ম রিসেট এবং স্টেট ক্লিয়ার করা
+            setFormData({ title: "", description: "", price: "", category: "", image: "" });
+            setEditingId(null);
+            fetchServices(); // নতুন ডাটা ফেচ করে UI আপডেট করা
+        } catch (error) {
+            console.error("Submit error:", error);
+        }
     };
 
     return (
@@ -129,10 +137,22 @@ export default function ProviderDashboard() {
                 </div>
 
                 <div className="mb-8 flex gap-4">
-                    <Button onPress={() => setActiveTab("services")} className={`rounded-full px-6 py-2 font-semibold ${activeTab === "services" ? "bg-primary text-white" : "bg-white border"}`}>
+                    <Button
+                        onPress={() => setActiveTab("services")}
+                        className={`rounded-full px-6 py-2 font-semibold ${activeTab === "services"
+                            ? "bg-primary text-gray-900" // হালকা ব্যাকগ্রাউন্ডের জন্য ডার্ক টেক্সট
+                            : "bg-white border text-gray-700"
+                            }`}
+                    >
                         My Services
                     </Button>
-                    <Button onPress={() => setActiveTab("bookings")} className={`rounded-full px-6 py-2 font-semibold ${activeTab === "bookings" ? "bg-primary text-white" : "bg-white border"}`}>
+                    <Button
+                        onPress={() => setActiveTab("bookings")}
+                        className={`rounded-full px-6 py-2 font-semibold ${activeTab === "bookings"
+                            ? "bg-primary text-gray-900"
+                            : "bg-white border text-gray-700"
+                            }`}
+                    >
                         Booking Requests
                     </Button>
                 </div>
@@ -175,7 +195,18 @@ export default function ProviderDashboard() {
                                     <p className="text-xl font-bold text-primary">৳{s.price}</p>
                                     <div className="mt-5 flex gap-3">
                                         <Button onPress={() => { setEditingId(s._id); setFormData({ title: s.title, description: s.description, price: String(s.price), category: s.category, image: s.image }); }} className="rounded-full bg-accent text-white px-5">Edit</Button>
-                                        <Button onPress={async () => { await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/services/${s._id}`, { method: "DELETE", headers: getAuthHeaders() }); fetchServices(); }} className="rounded-full bg-red-500 text-white px-5">Delete</Button>
+                                        <Button
+                                            onPress={async () => {
+                                                const { data: tokenData } = await authClient.token()
+
+                                                await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/services/${s._id}`,
+                                                    {
+                                                        method: "DELETE", headers: {
+                                                            'content-type': 'application/json',
+                                                            authorization: `Bearer ${tokenData?.token}`
+                                                        },
+                                                    }); fetchServices();
+                                            }} className="rounded-full bg-red-500 text-white px-5">Delete</Button>
                                     </div>
                                 </Card>
                             ))}

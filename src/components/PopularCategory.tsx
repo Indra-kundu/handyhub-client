@@ -130,7 +130,7 @@ export default function PopularCategories() {
                             return (
 
                                 <Link
-                                    href="/browse-service"
+                                    href={`/browse-service?category=${encodeURIComponent(category.title)}`}
                                     key={category.title}
                                     className="
                     group
